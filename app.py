@@ -11,8 +11,8 @@ import numpy as np
 import pandas as pd
 import os
 
-#os.chdir(os.path.dirname(os.path.abspath(__file__)))
-os.chdir(r'C:\Users\valen\fish_ax')
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+#os.chdir(r'C:\Users\valen\fish_ax')
 
 
 # Importing data

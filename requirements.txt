@@ -1,7 +1,6 @@
 streamlit
 numpy
 pandas
-os
 requests
 bs4
 datetime

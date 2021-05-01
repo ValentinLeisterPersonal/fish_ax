@@ -52,19 +52,23 @@ if not option == "TODOS (Media ponderada)":
 
 st.line_chart(price_range_chart_data)
 if not option == "TODOS (Media ponderada)":
-    if st.checkbox('Datos detallados'):
+    if st.checkbox('Ver mas detalles'):
         'Informacion detallada sobre la especie : ', option 
         st.write(df[df['especie']==option].drop(columns='especie').sort_values(by='fecha'))
 
 
-st.write("5 especies más caros:")
-st.write(df.nlargest(5, 'precio_medio'))
+st.write("Las 5 especies más caros segun precio medio:")
 
-st.write("5 especies más baratos:")
-st.write(df.nsmallest(5, 'precio_medio'))
+df_avg_per_species = df.groupby('especie').mean()
 
-st.write("5 especies más vendidos")
-st.write(df.nlargest(5, 'kg_vendidos'))
+
+st.write(df_avg_per_species.nlargest(5, 'precio_medio')[['precio_medio', 'precio_min','precio_max']])
+
+st.write("Las 5 especies más baratos segun precio medio:")
+st.write(df_avg_per_species.nsmallest(5, 'precio_medio')[['precio_medio', 'precio_min','precio_max']])
+
+st.write("Las 5 especies más vendidos")
+st.write(df_avg_per_species.nlargest(5, 'kg_vendidos')[['kg_vendidos', 'precio_medio']])
 
 
 

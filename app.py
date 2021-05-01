@@ -16,7 +16,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
 # Importing data
-df = pd.read_csv("data\market_price_vigo_hist_daily.csv", dtype= {'species': str
+df = pd.read_csv("data/market_price_vigo_hist_daily.csv", dtype= {'species': str
                                                              , 'date': str
                                                              , 'max_price_kg': float
                                                              , 'min_price_kg': float

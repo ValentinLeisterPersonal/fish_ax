@@ -67,7 +67,7 @@ print('Data for today looks like this:')
 print(df_today_clean.head())
 
 # Load all existing data to see whether we already have some entries for today
-df_hist = pd.read_csv("data\market_price_vigo_hist_daily.csv", dtype= {'species': str
+df_hist = pd.read_csv("data/market_price_vigo_hist_daily.csv", dtype= {'species': str
                                                              , 'date': str
                                                              , 'max_price_kg': float
                                                              , 'min_price_kg': float
@@ -88,9 +88,9 @@ print(str(len(df_today_clean))+' new rows successfully apended')
 
 
 # Updating the main database
-df_updated.to_csv('data\market_price_vigo_hist_daily.csv',index=False, header =True)
+df_updated.to_csv('data/market_price_vigo_hist_daily.csv',index=False, header =True)
 print('Data successfully written to .csv')
 
 # Writing a backup with a timestamp, just in case
-df_updated.to_csv('data\backup\market_price_vigo_hist_daily_backup'+datetime.datetime.now().strftime("%d-%b-%Y-%H-%M-%S")+'.csv',index=False, header =True)
+df_updated.to_csv('data/backup/market_price_vigo_hist_daily_backup'+datetime.datetime.now().strftime("%d-%b-%Y-%H-%M-%S")+'.csv',index=False, header =True)
 print('Data Backup successfully written')

@@ -38,7 +38,7 @@ price_range_chart_data= df.groupby('fecha').mean().sort_values(by='fecha', ascen
 
 price_index = price_range_chart_data['precio_medio']/price_range_chart_data['precio_medio'][0]*100
 
-st.title('Precios de Pescado en lonja')
+st.title('Precios de pescado en lonja')
 st.write("Indice de precios (Abr-22 21 = 100)")
 st.line_chart(price_index)
 
@@ -46,28 +46,28 @@ st.line_chart(price_index)
 st.write("Evolucion del precio medio, maximo y minimo")
 option = st.selectbox(
     'Escoge la especie a visualizar',
-     np.insert(df['especie'].unique(),0,"TODOS (Media ponderada)"))
-if not option == "TODOS (Media ponderada)":
+     np.insert(df['especie'].unique(),0,"TODAS (media ponderada)"))
+if not option == "TODAS (media ponderada)":
     price_range_chart_data = df[df['especie']== option].set_index('fecha')[['precio_medio', 'precio_min','precio_max']]
 
 st.line_chart(price_range_chart_data)
-if not option == "TODOS (Media ponderada)":
-    if st.checkbox('Ver mas detalles'):
+if not option == "TODAS (media ponderada)":
+    if st.checkbox('Ver datos detallados'):
         'Informacion detallada sobre la especie : ', option 
         st.write(df[df['especie']==option].drop(columns='especie').sort_values(by='fecha'))
 
 
-st.write("Las 5 especies más caros segun precio medio:")
+st.write("Las 5 especies más caras segun precio medio:")
 
 df_avg_per_species = df.groupby('especie').mean()
 
 
 st.write(df_avg_per_species.nlargest(5, 'precio_medio')[['precio_medio', 'precio_min','precio_max']])
 
-st.write("Las 5 especies más baratos segun precio medio:")
+st.write("Las 5 especies más baratas segun precio medio:")
 st.write(df_avg_per_species.nsmallest(5, 'precio_medio')[['precio_medio', 'precio_min','precio_max']])
 
-st.write("Las 5 especies más vendidos")
+st.write("Las 5 especies más vendidas")
 st.write(df_avg_per_species.nlargest(5, 'kg_vendidos')[['kg_vendidos', 'precio_medio']])
 
 

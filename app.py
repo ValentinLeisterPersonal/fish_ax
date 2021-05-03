@@ -11,21 +11,21 @@ import numpy as np
 import pandas as pd
 import os
 import altair as alt
+import psycopg2
+
+
+DATABASE_URL = os.environ['DATABASE_URL']
+#DATABASE_URL = 'postgres://qpesqziuxmjadk:068a89d1a51c5c4c25b2e76e54d82005f68edc09d1ff5941ffa8de208fcf59bf@ec2-23-22-191-232.compute-1.amazonaws.com:5432/da51dv9akjq43s'
+conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-#os.chdir(r'C:\Users\valen\fish_ax')
+#os.chdir(r'C:\Users\valen\desktop\fish_ax')
 
-
-# Importing data
-df = pd.read_csv("data/market_price_vigo_hist_daily.csv", dtype= {'species': str
-                                                                  , 'date': str
-                                                                  , 'max_price_kg': float
-                                                                  , 'min_price_kg': float
-                                                                  ,'kg_auctioned': float}
-                                                                 , parse_dates=['date'])
+sql = 'select * from market_price_vigo_hist_daily'
+df = pd.read_sql_query(sql,conn)
 
 # Converting pandas date formate to datetime.date()
-df.date = df.date.apply(lambda x: x.to_pydatetime().date())
+#df.date = df.date.apply(lambda x: x.to_pydatetime().date())
 
 # Renaming columns
 df.columns =['especie','fecha', 'precio_max', 'precio_min', 'kg_vendidos']
@@ -72,7 +72,9 @@ st.text("Precio medio, maximo y minimo en Eur /Kg")
 
 source=df_agg_per_date.reset_index().melt('fecha')
 st.write(
-    alt.Chart(source).mark_line(interpolate='step-after').encode(
+    alt.Chart(source).mark_line(point=True
+                                #, interpolate='step-after'
+                                ).encode(
     x='fecha',
     y='value',
     color=alt.Color('variable', scale=alt.Scale(domain=['precio_medio', 'precio_min','precio_max']

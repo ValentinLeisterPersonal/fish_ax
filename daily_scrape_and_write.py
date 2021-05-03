@@ -44,8 +44,8 @@ DATABASE_URL = 'postgres://qpesqziuxmjadk:068a89d1a51c5c4c25b2e76e54d82005f68edc
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 
 
-#os.chdir(os.path.dirname(os.path.abspath(__file__)))
-os.chdir(r'C:\Users\valen\desktop\fish_ax')
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+#os.chdir(r'C:\Users\valen\desktop\fish_ax')
 
 
 # scraping Website HTML

@@ -51,7 +51,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 # scraping Website HTML
 print("Starting scraping fish prices from Vigo...")
 page = requests.get('http://www.puertodevigo.com/informacion-diaria-lonja/')
-soup = BeautifulSoup(page.text, "lxml")
+soup = BeautifulSoup(page.text, "html.parser")
 print("Done scraping")
 
 # Find table call "listado" which contains fish auction prices

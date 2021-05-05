@@ -44,7 +44,8 @@ df.insert(6, "rotacion_eur", df.precio_medio*df.kg_vendidos)
 
 df_agg_per_date=df.groupby(['fecha']).agg({'precio_medio':np.mean
                                      ,'precio_max':np.mean
-                                     ,'precio_min':np.mean})
+                                     ,'precio_min':np.mean
+                                     ,'kg_vendidos':sum})
 
 price_index = df_agg_per_date['precio_medio']/df_agg_per_date['precio_medio'][0]*100
 
@@ -65,12 +66,15 @@ option = st.selectbox(
     'Escoge la especie a visualizar',
      np.insert(df['especie'].sort_values().unique(),0,"TODAS (media ponderada)"))
 if not option == "TODAS (media ponderada)":
-    df_agg_per_date = df[df['especie']== option].set_index('fecha')[['precio_medio', 'precio_min','precio_max']]
+    df_agg_per_date = df[df['especie']== option].set_index('fecha')[['precio_medio', 'precio_min','precio_max', 'kg_vendidos']]
 st.text("Precio medio, maximo y minimo en Eur /Kg")
 
 
 
-source=df_agg_per_date.reset_index().melt('fecha')
+
+
+# line chart with price evolution
+source=df_agg_per_date[['precio_medio', 'precio_min','precio_max']].reset_index().melt('fecha')
 st.write(
     alt.Chart(source).mark_line(point=True
                                 #, interpolate='step-after'
@@ -78,11 +82,22 @@ st.write(
     x='fecha',
     y='value',
     color=alt.Color('variable', scale=alt.Scale(domain=['precio_medio', 'precio_min','precio_max']
-                                                , range = ['black','palegreen','coral']))
+                                                , range = ['#797979','#B2FDBF','#FDBFB2']),legend=None)
     ).configure_line(size=3)
     )
 
+# column chart with volume
 
+df_kg_sold_per_day = df_agg_per_date.reset_index()[['fecha', 'kg_vendidos']]
+
+st.write(
+    alt.Chart(df_kg_sold_per_day).mark_bar(size=15).encode(
+    x='fecha',
+    y='kg_vendidos'
+    ).configure_bar(color='#797979')
+    )
+                                    
+                                    
 if not option == "TODAS (media ponderada)":
     if st.checkbox('Mostrar datos detallados'):
         'Informacion detallada sobre la especie : ', option 

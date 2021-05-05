@@ -39,8 +39,8 @@ def execute_values(conn, df, table):
     cursor.close()
 
 
-#DATABASE_URL = os.environ['DATABASE_URL']
-DATABASE_URL = 'postgres://qpesqziuxmjadk:068a89d1a51c5c4c25b2e76e54d82005f68edc09d1ff5941ffa8de208fcf59bf@ec2-23-22-191-232.compute-1.amazonaws.com:5432/da51dv9akjq43s'
+DATABASE_URL = os.environ['DATABASE_URL']
+#DATABASE_URL = 'postgres://qpesqziuxmjadk:068a89d1a51c5c4c25b2e76e54d82005f68edc09d1ff5941ffa8de208fcf59bf@ec2-23-22-191-232.compute-1.amazonaws.com:5432/da51dv9akjq43s'
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 
 

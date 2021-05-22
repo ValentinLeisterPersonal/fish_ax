@@ -22,6 +22,29 @@ class FishPrices():
         page = requests.get(url)
         self.soup = BeautifulSoup(page.text, "html.parser")
         print("Done scraping")
+        
+    @staticmethod
+    def execute_values(conn, df, table):
+        """
+        Using psycopg2.extras.execute_values() to insert the dataframe
+        """
+        # Create a list of tupples from the dataframe values
+        tuples = [tuple(x) for x in df.to_numpy()]
+        # Comma-separated dataframe columns
+        cols = ','.join(list(df.columns))
+        # SQL quert to execute
+        query  = "INSERT INTO %s(%s) VALUES %%s" % (table, cols)
+        cursor = conn.cursor()
+        try:
+            extras.execute_values(cursor, query, tuples)
+            conn.commit()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print("Error: %s" % error)
+            conn.rollback()
+            cursor.close()
+            return 1
+        print("execute_values() done")
+        cursor.close()
     
     def extract_rows(self):
         # Find table call "listado" which contains fish auction prices
@@ -106,7 +129,7 @@ class FishPrices():
         print('Records stored before appending:'+str(len(pd.read_sql_query(self.sql,self.conn))))
         
         # Appending new rows to pg table
-        execute_values(self.conn, self.df_clean, 'market_price_vigo_hist_daily')
+        self.execute_values(self.conn, self.df_clean, 'market_price_vigo_hist_daily')
         print(str(len(pd.read_sql_query(self.sql,self.conn))))
     
         print(str(len(self.df_clean))+' new rows successfully apended')

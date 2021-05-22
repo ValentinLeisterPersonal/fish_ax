@@ -60,6 +60,31 @@ df_avg_per_species = df.groupby('especie').agg({'precio_medio':np.mean
 ##########
 
 st.title('Precios de pescado en lonja')
+
+st.header("Chollos y pescado a mejor evitar en la lonja hoy")
+
+df_deviation = pd.read_sql_query('''SELECT species as especie,
+avg_price_today as precio_hoy,
+deviation_from_avg_price as desviacion_del_precio_medio,
+avg_price_all_time as precio_medio
+from (select 
+				date, 
+				species, 
+				round(((max_price+min_price)/2)::numeric, 2) as avg_price_today,
+				round((avg((max_price+min_price)/2) over (partition by species))::numeric, 2) as avg_price_all_time,
+				round((((max_price+min_price)/2)/ (avg((max_price+min_price)/2) over (partition by species))-1)::numeric, 2) as deviation_from_avg_price
+				from market_price_vigo_hist_daily) deviations
+where date = CURRENT_DATE
+ORDER BY deviation_from_avg_price''', conn)
+
+source = df_deviation
+st.write(alt.Chart(source).mark_bar().encode(
+    x='desviacion_del_precio_medio:Q',y=alt.Y('especie:N', sort='x'), color=alt.Color('desviacion_del_precio_medio',
+                                                                                      sort = "descending", 
+                                                                                      scale=alt.Scale(scheme='redyellowgreen'), legend = None)))
+
+
+
 st.header("Evolucion del precio por especie")
 
 option = st.selectbox(

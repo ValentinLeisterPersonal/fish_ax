@@ -61,7 +61,9 @@ df_avg_per_species = df.groupby('especie').agg({'precio_medio':np.mean
 
 st.title('Precios de pescado en lonja')
 
-st.header("Chollos y pescado a mejor evitar en la lonja hoy")
+st.header("El Chollometro de la lonja hoy")
+st.text("El precio de hoy en EUR /Kg comparado con el precio medio")
+
 
 df_deviation = pd.read_sql_query('''SELECT species as especie,
 avg_price_today as precio_hoy,
@@ -70,18 +72,36 @@ avg_price_all_time as precio_medio
 from (select 
 				date, 
 				species, 
-				round(((max_price+min_price)/2)::numeric, 2) as avg_price_today,
-				round((avg((max_price+min_price)/2) over (partition by species))::numeric, 2) as avg_price_all_time,
-				round((((max_price+min_price)/2)/ (avg((max_price+min_price)/2) over (partition by species))-1)::numeric, 2) as deviation_from_avg_price
-				from market_price_vigo_hist_daily) deviations
+				round(((max(max_price)+min(min_price))/2)::numeric, 2) as avg_price_today,
+				round((avg((max(max_price)+min(min_price))/2) over (partition by species))::numeric, 2) as avg_price_all_time,
+				round((((max(max_price)+min(min_price))/2)/ (avg((max(max_price)+min(min_price))/2) over (partition by species))-1)::numeric, 2) as deviation_from_avg_price
+				from market_price_vigo_hist_daily
+	 			group by 1,2) deviations
 where date = CURRENT_DATE
 ORDER BY deviation_from_avg_price''', conn)
 
+
+df_deviation['data_label']= pd.Series(["{0:+.0f}%".format(val * 100) for val in df_deviation.desviacion_del_precio_medio])+' ('+df_deviation.precio_hoy.astype(str)+'€)' 
+
 source = df_deviation
-st.write(alt.Chart(source).mark_bar().encode(
-    x='desviacion_del_precio_medio:Q',y=alt.Y('especie:N', sort='x'), color=alt.Color('desviacion_del_precio_medio',
-                                                                                      sort = "descending", 
-                                                                                      scale=alt.Scale(scheme='redyellowgreen'), legend = None)))
+
+base = alt.Chart(source).encode(
+    x='desviacion_del_precio_medio:Q',
+    y=alt.Y('especie:N', sort='x')
+)
+
+bars = base.mark_bar().encode(color=alt.Color('desviacion_del_precio_medio', scale=alt.Scale(domain = [-1,+1],scheme='lightmulti'), legend = None))
+
+
+text = base.mark_text(
+    align='left',
+    baseline='middle',
+    dx=7  # Nudges text to right so it doesn't appear on top of the bar
+, color ='slategrey').encode(
+    text='data_label'
+)
+
+st.write(bars + text)
 
 
 

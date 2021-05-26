@@ -62,7 +62,7 @@ df_avg_per_species = df.groupby('especie').agg({'precio_medio':np.mean
 st.title('Precios de pescado en lonja')
 
 st.header("El Chollometro de la lonja hoy")
-st.text("El precio de hoy en EUR /Kg comparado con el precio medio")
+st.text("Precio hoy en EUR /Kg vs. precio medio")
 
 
 df_deviation = pd.read_sql_query('''SELECT species as especie,

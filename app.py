@@ -61,8 +61,10 @@ df_avg_per_species = df.groupby('especie').agg({'precio_medio':np.mean
 
 st.title('Precios de pescado en lonja')
 
+
+
+
 st.header("El Chollometro de la lonja hoy")
-st.text("Precio hoy en EUR /Kg vs. precio medio")
 
 
 df_deviation = pd.read_sql_query('''SELECT species as especie,
@@ -83,35 +85,52 @@ ORDER BY deviation_from_avg_price''', conn)
 
 df_deviation['data_label']= pd.Series(["{0:+.0f}%".format(val * 100) for val in df_deviation.desviacion_del_precio_medio])+' ('+df_deviation.precio_hoy.astype(str)+'€)' 
 
-source = df_deviation
 
-base = alt.Chart(source).encode(
-    x='desviacion_del_precio_medio:Q',
-    y=alt.Y('especie:N', sort='x')
-)
-
-bars = base.mark_bar().encode(color=alt.Color('desviacion_del_precio_medio', scale=alt.Scale(domain = [-1,+1],scheme='lightmulti'), legend = None))
-
-
-text = base.mark_text(
-    align='left',
-    baseline='middle',
-    dx=7  # Nudges text to right so it doesn't appear on top of the bar
-, color ='slategrey').encode(
-    text='data_label'
-)
-
-st.write(bars + text)
-
-
-
-st.header("Evolucion del precio por especie")
 
 option = st.selectbox(
     'Escoge la especie a visualizar',
-     np.insert(df['especie'].sort_values().unique(),0,"TODAS (media ponderada)"))
-if not option == "TODAS (media ponderada)":
-    df_agg_per_date = df[df['especie']== option].set_index('fecha')[['precio_medio', 'precio_min','precio_max', 'kg_vendidos']]
+     np.insert(df_deviation['especie'].sort_values().unique(),0,"TODAS (media ponderada)"))
+
+
+
+if len(df_deviation)>0:
+    
+    
+    
+    if not option == "TODAS (media ponderada)":
+        df_agg_per_date = df[df['especie']== option].set_index('fecha')[['precio_medio', 'precio_min','precio_max', 'kg_vendidos']]    
+        source = df_deviation[df_deviation["especie"] == option]
+    else:
+        max_price = st.slider('O indica el precio maximo en EUR/Kg que quieres pagar', min(df_deviation.precio_hoy), max(df_deviation.precio_hoy), max(df_deviation.precio_hoy), step=1.0)
+        source = df_deviation[df_deviation['precio_hoy']<max_price]
+
+    base = alt.Chart(source).encode(
+        x='desviacion_del_precio_medio:Q',
+        y=alt.Y('especie:N', sort='x')
+    )
+    
+    bars = base.mark_bar().encode(color=alt.Color('desviacion_del_precio_medio', scale=alt.Scale(domain = [-1,+1],scheme='lightmulti'), legend = None))
+    
+    
+    text = base.mark_text(
+        align='left',
+        baseline='middle',
+        dx=7  # Nudges text to right so it doesn't appear on top of the bar
+    , color ='slategrey').encode(
+        text='data_label')
+    
+    
+    
+    st.text("Precio hoy en EUR /Kg vs. precio medio")
+    st.write(bars + text)
+else:
+    st.text("Parece que hoy la lonja está cerrada o aun no se han publicado precios.")
+
+    
+
+st.header("Evolucion del precio por especie")
+
+
 st.text("Precio medio, maximo y minimo en Eur /Kg")
 
 

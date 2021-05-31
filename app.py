@@ -61,9 +61,6 @@ df_avg_per_species = df.groupby('especie').agg({'precio_medio':np.mean
 
 st.title('Precios de pescado en lonja')
 
-
-
-
 st.header("El Chollometro de la lonja hoy")
 
 
@@ -89,20 +86,22 @@ df_deviation['data_label']= pd.Series(["{0:+.0f}%".format(val * 100) for val in 
 
 option = st.selectbox(
     'Escoge la especie a visualizar',
-     np.insert(df_deviation['especie'].sort_values().unique(),0,"TODAS (media ponderada)"))
+     np.insert(df['especie'].sort_values().unique(),0,"TODAS (media ponderada)"))
 
 
 
 if len(df_deviation)>0:
     
-    
-    
     if not option == "TODAS (media ponderada)":
         df_agg_per_date = df[df['especie']== option].set_index('fecha')[['precio_medio', 'precio_min','precio_max', 'kg_vendidos']]    
         source = df_deviation[df_deviation["especie"] == option]
     else:
-        max_price = st.slider('O indica el precio maximo en EUR/Kg que quieres pagar', min(df_deviation.precio_hoy), max(df_deviation.precio_hoy), max(df_deviation.precio_hoy), step=1.0)
-        source = df_deviation[df_deviation['precio_hoy']<max_price]
+        (min_price, max_price) = st.slider('O indica el precio en EUR/Kg que estas dispuesto a pagar'
+                              , min(df_deviation.precio_hoy)
+                              , max(df_deviation.precio_hoy)
+                              , (min(df_deviation.precio_hoy), max(df_deviation.precio_hoy))
+                              , step=1.0)
+        source = df_deviation[(df_deviation['precio_hoy']<=max_price)&(df_deviation['precio_hoy']>=min_price)]
 
     base = alt.Chart(source).encode(
         x='desviacion_del_precio_medio:Q',
@@ -133,10 +132,6 @@ st.header("Evolucion del precio por especie")
 
 st.text("Precio medio, maximo y minimo en Eur /Kg")
 
-
-
-
-
 # line chart with price evolution
 source=df_agg_per_date[['precio_medio', 'precio_min','precio_max']].reset_index().melt('fecha')
 st.write(
@@ -150,6 +145,45 @@ st.write(
     ).configure_line(size=3)
     )
 
+                                    
+                                    
+                                    
+df_per_weekday = pd.read_sql_query('''(select 'TODAS (media ponderada)' as species
+, extract(isodow from date) as weekday_numeric
+, round(percentile_cont(0.5) within group (order by((max_price+min_price)/2))::numeric, 2) avg_price from market_price_vigo_hist_daily 
+group by 1,2
+order by 1,2)
+
+union all
+
+(select species
+, extract(isodow from date) as weekday_numeric
+, round(percentile_cont(0.5) within group (order by((max_price+min_price)/2))::numeric, 2) avg_price 
+from market_price_vigo_hist_daily 
+group by 1,2
+order by 1, 2)''', conn)
+
+weekday_dict_es = {1:'1.LUN', 2:'2.MAR', 3:'3.MIE', 4: '4.JUE', 5: '5.VIE', 6: '6.SAB', 7: '7.DOM'}
+
+df_per_weekday['weekday_char']=[weekday_dict_es[wd] for wd in df_per_weekday.weekday_numeric]
+
+
+source = df_per_weekday[df_per_weekday["species"] == option]
+
+st.write(
+    alt.Chart(source).mark_bar(size=15
+                                #, interpolate='step-after'
+                                ).encode(
+    x='weekday_char',
+    y='avg_price',
+    color=alt.Color('avg_price', scale=alt.Scale(scheme='lightmulti'),legend=None)
+    ), use_container_width=True
+    )
+
+
+
+                                    
+                                    
 # column chart with volume
 
 df_kg_sold_per_day = df_agg_per_date.reset_index()[['fecha', 'kg_vendidos']]

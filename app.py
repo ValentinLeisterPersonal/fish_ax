@@ -14,12 +14,12 @@ import altair as alt
 import psycopg2
 
 
-#DATABASE_URL = os.environ['DATABASE_URL']
-DATABASE_URL = 'postgres://qpesqziuxmjadk:068a89d1a51c5c4c25b2e76e54d82005f68edc09d1ff5941ffa8de208fcf59bf@ec2-23-22-191-232.compute-1.amazonaws.com:5432/da51dv9akjq43s'
+DATABASE_URL = os.environ['DATABASE_URL']
+#DATABASE_URL = 'postgres://qpesqziuxmjadk:068a89d1a51c5c4c25b2e76e54d82005f68edc09d1ff5941ffa8de208fcf59bf@ec2-23-22-191-232.compute-1.amazonaws.com:5432/da51dv9akjq43s'
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 
-#os.chdir(os.path.dirname(os.path.abspath(__file__)))
-os.chdir(r'C:\Users\valen\desktop\fish_ax')
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+#os.chdir(r'C:\Users\valen\desktop\fish_ax')
 
 sql = 'select * from market_price_vigo_hist_daily'
 df = pd.read_sql_query(sql,conn)

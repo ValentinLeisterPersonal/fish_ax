@@ -14,12 +14,12 @@ import altair as alt
 import psycopg2
 
 
-DATABASE_URL = os.environ['DATABASE_URL']
-#DATABASE_URL = 'postgres://qpesqziuxmjadk:068a89d1a51c5c4c25b2e76e54d82005f68edc09d1ff5941ffa8de208fcf59bf@ec2-23-22-191-232.compute-1.amazonaws.com:5432/da51dv9akjq43s'
+#DATABASE_URL = os.environ['DATABASE_URL']
+DATABASE_URL = 'postgres://qpesqziuxmjadk:068a89d1a51c5c4c25b2e76e54d82005f68edc09d1ff5941ffa8de208fcf59bf@ec2-23-22-191-232.compute-1.amazonaws.com:5432/da51dv9akjq43s'
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
-#os.chdir(r'C:\Users\valen\desktop\fish_ax')
+#os.chdir(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(r'C:\Users\valen\desktop\fish_ax')
 
 sql = 'select * from market_price_vigo_hist_daily'
 df = pd.read_sql_query(sql,conn)
@@ -88,12 +88,12 @@ option = st.selectbox(
     'Escoge la especie a visualizar',
      np.insert(df['especie'].sort_values().unique(),0,"TODAS (media ponderada)"))
 
-
+if not option == "TODAS (media ponderada)":
+        df_agg_per_date = df[df['especie']== option].set_index('fecha')[['precio_medio', 'precio_min','precio_max', 'kg_vendidos']]  
 
 if len(df_deviation)>0:
     
-    if not option == "TODAS (media ponderada)":
-        df_agg_per_date = df[df['especie']== option].set_index('fecha')[['precio_medio', 'precio_min','precio_max', 'kg_vendidos']]    
+    if not option == "TODAS (media ponderada)":    
         source = df_deviation[df_deviation["especie"] == option]
     else:
         (min_price, max_price) = st.slider('O indica el precio en EUR/Kg que estas dispuesto a pagar'
@@ -148,6 +148,26 @@ st.write(
                                     
                                     
                                     
+                                   
+                                    
+# column chart with volume
+
+df_kg_sold_per_day = df_agg_per_date.reset_index()[['fecha', 'kg_vendidos']]
+
+st.write(
+    alt.Chart(df_kg_sold_per_day).mark_bar(size=15).encode(
+    x='fecha',
+    y='kg_vendidos'
+    ).configure_bar(color='#797979')
+    )
+                                    
+                                    
+if not option == "TODAS (media ponderada)":
+    if st.checkbox('Mostrar datos detallados'):
+        'Informacion detallada sobre la especie : ', option 
+        st.write(df[df['especie']==option].drop(columns='especie').sort_values(by='fecha'))
+
+
 df_per_weekday = pd.read_sql_query('''(select 'TODAS (media ponderada)' as species
 , extract(isodow from date) as weekday_numeric
 , round(percentile_cont(0.5) within group (order by((max_price+min_price)/2))::numeric, 2) avg_price from market_price_vigo_hist_daily 
@@ -167,39 +187,36 @@ weekday_dict_es = {1:'1.LUN', 2:'2.MAR', 3:'3.MIE', 4: '4.JUE', 5: '5.VIE', 6: '
 
 df_per_weekday['weekday_char']=[weekday_dict_es[wd] for wd in df_per_weekday.weekday_numeric]
 
+#line weekday chart
 
-source = df_per_weekday[df_per_weekday["species"] == option]
-
-st.write(
-    alt.Chart(source).mark_bar(size=15
-                                #, interpolate='step-after'
-                                ).encode(
-    x='weekday_char',
-    y='avg_price',
-    color=alt.Color('avg_price', scale=alt.Scale(scheme='lightmulti'),legend=None)
-    ), use_container_width=True
-    )
+source = df_per_weekday
 
 
+df_per_weekday['option_chosen']='other species'
 
-                                    
-                                    
-# column chart with volume
+df_per_weekday.loc[df_per_weekday['species']==option, 'option_chosen'] = option
 
-df_kg_sold_per_day = df_agg_per_date.reset_index()[['fecha', 'kg_vendidos']]
+line=alt.Chart(source).mark_line(point=True).encode(
+            x='weekday_char',
+            y=alt.Y('avg_price', scale=alt.Scale(type='log')),
+            detail=alt.Detail('species'),
+            tooltip='species',
+            color=alt.Color('option_chosen', scale=alt.Scale(domain=['other species', option]
+                                                        , range = ['#cfebfd','#00008b']))
+            ).properties(width=800,height=800).interactive()
 
-st.write(
-    alt.Chart(df_kg_sold_per_day).mark_bar(size=15).encode(
-    x='fecha',
-    y='kg_vendidos'
-    ).configure_bar(color='#797979')
-    )
-                                    
-                                    
-if not option == "TODAS (media ponderada)":
-    if st.checkbox('Mostrar datos detallados'):
-        'Informacion detallada sobre la especie : ', option 
-        st.write(df[df['especie']==option].drop(columns='especie').sort_values(by='fecha'))
+# layer that accomplishes the highlighting
+source_highlight = df_per_weekday[df_per_weekday["species"] == option]
+line_highlight = alt.Chart(source_highlight).mark_line(point=True).encode(
+                    x='weekday_char',
+                    y=alt.Y('avg_price', scale=alt.Scale(type='log')),
+                    detail=alt.Detail('species'),
+                    tooltip='species',
+                    color=alt.Color('option_chosen', scale=alt.Scale(domain=['other species', option]
+                                                                , range = ['#cfebfd','#00008b']))
+                    ).properties(width=800, height=800).interactive()
+
+st.write(line + line_highlight)
 
 
 st.header("Las 5 especies más caras segun precio medio:")

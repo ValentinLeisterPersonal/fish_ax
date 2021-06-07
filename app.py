@@ -168,9 +168,13 @@ if not option == "TODAS (media ponderada)":
         st.write(df[df['especie']==option].drop(columns='especie').sort_values(by='fecha'))
 
 
-df_per_weekday = pd.read_sql_query('''(select 'TODAS (media ponderada)' as species
+df_per_weekday = pd.read_sql_query('''select species, weekday_numeric, avg_price, round(avg_price/ avg(avg_price) over (partition by species)-1, 3) dev_pct_from_avg_price from 
+
+((select 'TODAS (media ponderada)' as species
 , extract(isodow from date) as weekday_numeric
-, round(percentile_cont(0.5) within group (order by((max_price+min_price)/2))::numeric, 2) avg_price from market_price_vigo_hist_daily 
+, round(percentile_cont(0.5) within group (order by((max_price+min_price)/2))::numeric, 2) avg_price
+
+ from market_price_vigo_hist_daily 
 group by 1,2
 order by 1,2)
 
@@ -179,9 +183,10 @@ union all
 (select species
 , extract(isodow from date) as weekday_numeric
 , round(percentile_cont(0.5) within group (order by((max_price+min_price)/2))::numeric, 2) avg_price 
-from market_price_vigo_hist_daily 
+
+ from market_price_vigo_hist_daily 
 group by 1,2
-order by 1, 2)''', conn)
+order by 1, 2)) as base''', conn)
 
 weekday_dict_es = {1:'1.LUN', 2:'2.MAR', 3:'3.MIE', 4: '4.JUE', 5: '5.VIE', 6: '6.SAB', 7: '7.DOM'}
 
@@ -198,18 +203,18 @@ df_per_weekday.loc[df_per_weekday['species']==option, 'option_chosen'] = option
 
 line=alt.Chart(source).mark_line(point=True).encode(
             x='weekday_char',
-            y=alt.Y('avg_price', scale=alt.Scale(type='log')),
+            y=alt.Y('dev_pct_from_avg_price', axis=alt.Axis(format='+%')),
             detail=alt.Detail('species'),
             tooltip='species',
             color=alt.Color('option_chosen', scale=alt.Scale(domain=['other species', option]
                                                         , range = ['#cfebfd','#00008b']))
-            ).properties(width=800,height=800).interactive()
+            ).properties(width=550,height=800).interactive()
 
 # layer that accomplishes the highlighting
 source_highlight = df_per_weekday[df_per_weekday["species"] == option]
 line_highlight = alt.Chart(source_highlight).mark_line(point=True).encode(
                     x='weekday_char',
-                    y=alt.Y('avg_price', scale=alt.Scale(type='log')),
+                    y=alt.Y('dev_pct_from_avg_price'),
                     detail=alt.Detail('species'),
                     tooltip='species',
                     color=alt.Color('option_chosen', scale=alt.Scale(domain=['other species', option]

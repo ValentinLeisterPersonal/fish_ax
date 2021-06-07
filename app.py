@@ -96,7 +96,7 @@ if len(df_deviation)>0:
     if not option == "TODAS (media ponderada)":    
         source = df_deviation[df_deviation["especie"] == option]
     else:
-        (min_price, max_price) = st.slider('O indica el precio en EUR/Kg que estas dispuesto a pagar'
+        (min_price, max_price) = st.slider('Indica el precio en EUR/Kg que estas dispuesto a pagar'
                               , min(df_deviation.precio_hoy)
                               , max(df_deviation.precio_hoy)
                               , (min(df_deviation.precio_hoy), max(df_deviation.precio_hoy))
@@ -104,8 +104,8 @@ if len(df_deviation)>0:
         source = df_deviation[(df_deviation['precio_hoy']<=max_price)&(df_deviation['precio_hoy']>=min_price)]
 
     base = alt.Chart(source).encode(
-        x='desviacion_del_precio_medio:Q',
-        y=alt.Y('especie:N', sort='x')
+        x=alt.X('desviacion_del_precio_medio', title= 'Desviacion de precio medio', axis=alt.Axis(format='+%')),
+        y=alt.Y('especie:N', sort='x', title= 'Especie')
     )
     
     bars = base.mark_bar().encode(color=alt.Color('desviacion_del_precio_medio', scale=alt.Scale(domain = [-1,+1],scheme='lightmulti'), legend = None))
@@ -207,22 +207,38 @@ line=alt.Chart(source).mark_line(point=True).encode(
             detail=alt.Detail('species'),
             tooltip='species',
             color=alt.Color('option_chosen', scale=alt.Scale(domain=['other species', option]
-                                                        , range = ['#cfebfd','#00008b']))
+                                                        , range = ['#cfebfd','#00008b']), legend =None)
             ).properties(width=550,height=800).interactive()
 
 # layer that accomplishes the highlighting
 source_highlight = df_per_weekday[df_per_weekday["species"] == option]
 line_highlight = alt.Chart(source_highlight).mark_line(point=True).encode(
-                    x='weekday_char',
-                    y=alt.Y('dev_pct_from_avg_price'),
+                    x=alt.X('weekday_char', title = 'Dia de la Semana'),
+                    y=alt.Y('dev_pct_from_avg_price', title = 'Desviacion del precio medio'),
                     detail=alt.Detail('species'),
                     tooltip='species',
                     color=alt.Color('option_chosen', scale=alt.Scale(domain=['other species', option]
                                                                 , range = ['#cfebfd','#00008b']))
                     ).properties(width=800, height=800).interactive()
 
-st.write(line + line_highlight)
 
+annotation = alt.Chart(source).mark_text(
+    align='left',
+    baseline='middle',
+    fontSize = 15,
+    dx = 20
+).encode(
+        x='weekday_char',
+        y=alt.Y('dev_pct_from_avg_price', axis=alt.Axis(format='+%')),
+    text='species'
+).transform_filter((alt.datum.species == option)&(alt.datum.weekday_char == '3.MIE')
+)
+    
+st.write(line + annotation + line_highlight)
+
+
+#############################
+#############################
 
 st.header("Las 5 especies más caras segun precio medio:")
 st.text("Precios en Eur /Kg")

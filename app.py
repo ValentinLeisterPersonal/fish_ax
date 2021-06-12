@@ -208,7 +208,9 @@ line=alt.Chart(source).mark_line(point=True).encode(
             tooltip='species',
             color=alt.Color('option_chosen', scale=alt.Scale(domain=['other species', option]
                                                         , range = ['#cfebfd','#00008b']), legend =None)
-            ).properties(width=550,height=800).interactive()
+            ).interactive().properties(
+    height=600
+)
 
 # layer that accomplishes the highlighting
 source_highlight = df_per_weekday[df_per_weekday["species"] == option]
@@ -219,7 +221,7 @@ line_highlight = alt.Chart(source_highlight).mark_line(point=True).encode(
                     tooltip='species',
                     color=alt.Color('option_chosen', scale=alt.Scale(domain=['other species', option]
                                                                 , range = ['#cfebfd','#00008b']))
-                    ).properties(width=800, height=800).interactive()
+                    ).interactive()
 
 
 annotation = alt.Chart(source).mark_text(
@@ -233,8 +235,9 @@ annotation = alt.Chart(source).mark_text(
     text='species'
 ).transform_filter((alt.datum.species == option)&(alt.datum.weekday_char == '3.MIE')
 )
-    
-st.write(line + annotation + line_highlight)
+
+
+st.altair_chart(line + annotation + line_highlight, use_container_width=True)
 
 
 #############################

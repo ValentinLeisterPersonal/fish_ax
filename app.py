@@ -14,12 +14,12 @@ import altair as alt
 import psycopg2
 
 
-DATABASE_URL = os.environ['DATABASE_URL']
-#DATABASE_URL = 'postgres://qpesqziuxmjadk:068a89d1a51c5c4c25b2e76e54d82005f68edc09d1ff5941ffa8de208fcf59bf@ec2-23-22-191-232.compute-1.amazonaws.com:5432/da51dv9akjq43s'
+#DATABASE_URL = os.environ['DATABASE_URL']
+DATABASE_URL = 'postgres://qpesqziuxmjadk:068a89d1a51c5c4c25b2e76e54d82005f68edc09d1ff5941ffa8de208fcf59bf@ec2-23-22-191-232.compute-1.amazonaws.com:5432/da51dv9akjq43s'
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
-#os.chdir(r'C:\Users\valen\desktop\fish_ax')
+#os.chdir(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(r'C:\Users\valen\desktop\fish_ax')
 
 sql = 'select * from market_price_vigo_hist_daily'
 df = pd.read_sql_query(sql,conn)
@@ -121,45 +121,52 @@ if len(df_deviation)>0:
     
     
     st.text("Precio hoy en EUR /Kg vs. precio medio")
-    st.write(bars + text)
+    st.altair_chart(bars + text, use_container_width=True)
 else:
     st.text("Parece que hoy la lonja está cerrada o aun no se han publicado precios.")
 
     
 
-st.header("Evolucion del precio por especie")
+st.header("Evolucion del precio y volumen de venta por especie")
+st.text("Precio medio, maximo y minimo en EUR/Kg")
 
 
-st.text("Precio medio, maximo y minimo en Eur /Kg")
+
+
+
+
 
 # line chart with price evolution
-source=df_agg_per_date[['precio_medio', 'precio_min','precio_max']].reset_index().melt('fecha')
-st.write(
-    alt.Chart(source).mark_line(point=True
-                                #, interpolate='step-after'
-                                ).encode(
-    x='fecha',
-    y='value',
-    color=alt.Color('variable', scale=alt.Scale(domain=['precio_medio', 'precio_min','precio_max']
-                                                , range = ['#797979','#B2FDBF','#FDBFB2']),legend=None)
-    ).configure_line(size=3)
+source=df_agg_per_date[['precio_min','precio_max']].reset_index()
+
+source2=df_agg_per_date[['precio_medio']].reset_index().melt('fecha')
+
+line= alt.Chart(source2).mark_line().encode(
+    x=alt.X('fecha', title='Fecha'),
+    y=alt.Y('value', title='Precio (EUR/Kg)')
     )
 
-                                    
-                                    
-                                    
-                                   
-                                    
+
+band = alt.Chart(source).mark_area(opacity=0.7, color='#cfebfd'
+).encode(
+    x='fecha',
+    y='precio_min',
+    y2='precio_max'
+)
+
+st.altair_chart(band+line, use_container_width=True)
+
 # column chart with volume
+st.text("Peso vendido en Kg")
 
 df_kg_sold_per_day = df_agg_per_date.reset_index()[['fecha', 'kg_vendidos']]
 
-st.write(
-    alt.Chart(df_kg_sold_per_day).mark_bar(size=15).encode(
+columns = alt.Chart(df_kg_sold_per_day).mark_bar(size=7).encode(
     x='fecha',
     y='kg_vendidos'
-    ).configure_bar(color='#797979')
-    )
+    ).configure_bar(color='#cfebfd')
+
+st.altair_chart(columns, use_container_width=True)
                                     
                                     
 if not option == "TODAS (media ponderada)":
@@ -209,7 +216,7 @@ line=alt.Chart(source).mark_line(point=True).encode(
             color=alt.Color('option_chosen', scale=alt.Scale(domain=['other species', option]
                                                         , range = ['#cfebfd','#00008b']), legend =None)
             ).interactive().properties(
-    height=600
+    height=450
 )
 
 # layer that accomplishes the highlighting
@@ -247,8 +254,9 @@ st.header("Las 5 especies más caras segun precio medio:")
 st.text("Precios en Eur /Kg")
 
 source = df_avg_per_species.round(2).nlargest(5, 'precio_medio').reset_index()[['especie','precio_medio']]
-st.write(alt.Chart(source).mark_bar().encode(
-    x='precio_medio:Q',y=alt.Y('especie:N', sort='-x'), color=alt.Color('precio_medio', scale=alt.Scale(scheme='reds'))))
+bars=alt.Chart(source).mark_bar().encode(
+    x='precio_medio:Q',y=alt.Y('especie:N', sort='-x'), color=alt.Color('precio_medio', scale=alt.Scale(scheme='reds')))
+st.altair_chart(bars, use_container_width=True)
 
 st.write(df_avg_per_species.round(2).nlargest(5, 'precio_medio')[['precio_medio', 'precio_min','precio_max']].style.format("{:2}"))
 #st.bar_chart(df_avg_per_species.round(2).nlargest(5, 'precio_medio')[['precio_medio']])
@@ -257,20 +265,23 @@ st.write(df_avg_per_species.round(2).nlargest(5, 'precio_medio')[['precio_medio'
 st.header("Las 5 especies más baratas segun precio medio:")
 st.text("Precios en Eur /Kg")
 source = df_avg_per_species.round(2).nsmallest(5, 'precio_medio').reset_index()[['especie','precio_medio']]
-st.write(alt.Chart(source).mark_bar().encode(
-    x='precio_medio:Q',y=alt.Y('especie:N', sort='x'), color=alt.Color('precio_medio', scale=alt.Scale(scheme='greenblue'))))
+bars=alt.Chart(source).mark_bar().encode(
+    x='precio_medio:Q',y=alt.Y('especie:N', sort='x'), color=alt.Color('precio_medio', scale=alt.Scale(scheme='greenblue')))
+st.altair_chart(bars, use_container_width =  True)
 
 st.write(df_avg_per_species.round(2).nsmallest(5, 'precio_medio')[['precio_medio', 'precio_min','precio_max']].style.format("{:2}"))
 
 
 st.header("Indice general de precios")
 st.text("Abr-22 21 = 100")
-st.line_chart(price_index)
+source = pd.DataFrame({'date':price_index.index, 'index':price_index.values}) 
+line = alt.Chart(source).mark_line().encode(x='date', y='index')
+st.altair_chart(line, use_container_width=True)
 
 
 st.header("Las 5 especies más vendidas")
 st.text("Segun Kg vendidos por media cada día")
-st.write(df_avg_per_species.round(2).nlargest(5, 'kg_vendidos')[['kg_vendidos', 'precio_medio']].style.format("{:,.2f}"))
+st.dataframe(df_avg_per_species.round(2).nlargest(5, 'kg_vendidos')[['kg_vendidos', 'precio_medio']].style.format("{:,.2f}"))
 
 
 

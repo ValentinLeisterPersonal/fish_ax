@@ -1,0 +1,9 @@
+create table species (
+species VARCHAR (50) PRIMARY KEY UNIQUE NOT NULL,
+category VARCHAR (50),
+subcategory VARCHAR (50)
+)
+
+
+\copy species FROM data\species.csv WITH (FORMAT CSV);
+

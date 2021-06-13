@@ -4,8 +4,6 @@ Created on Thu Apr 29 17:48:22 2021
 
 @author: valen
 """
-
-
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -131,17 +129,12 @@ st.header("Evolucion del precio y volumen de venta por especie")
 st.text("Precio medio, maximo y minimo en EUR/Kg")
 
 
-
-
-
-
-
 # line chart with price evolution
 source=df_agg_per_date[['precio_min','precio_max']].reset_index()
 
 source2=df_agg_per_date[['precio_medio']].reset_index().melt('fecha')
 
-line= alt.Chart(source2).mark_line().encode(
+line= alt.Chart(source2).mark_line(size=5).encode(
     x=alt.X('fecha', title='Fecha'),
     y=alt.Y('value', title='Precio (EUR/Kg)')
     )
@@ -221,7 +214,7 @@ line=alt.Chart(source).mark_line(point=True).encode(
 
 # layer that accomplishes the highlighting
 source_highlight = df_per_weekday[df_per_weekday["species"] == option]
-line_highlight = alt.Chart(source_highlight).mark_line(point=True).encode(
+line_highlight = alt.Chart(source_highlight).mark_line(point=True, size =3).encode(
                     x=alt.X('weekday_char', title = 'Dia de la Semana'),
                     y=alt.Y('dev_pct_from_avg_price', title = 'Desviacion del precio medio'),
                     detail=alt.Detail('species'),
@@ -274,9 +267,68 @@ st.write(df_avg_per_species.round(2).nsmallest(5, 'precio_medio')[['precio_medio
 
 st.header("Indice general de precios")
 st.text("Abr-22 21 = 100")
+
+
+
 source = pd.DataFrame({'date':price_index.index, 'index':price_index.values}) 
 line = alt.Chart(source).mark_line().encode(x='date', y='index')
 st.altair_chart(line, use_container_width=True)
+
+
+
+
+st.header("Indice por subcategoria")
+
+df_index = pd.read_sql_query("""with price_base as (select date
+, category
+, subcategory
+, round(percentile_cont(0.5) within group (order by((max_price+min_price)/2))::numeric, 2) median_price
+
+from market_price_vigo_hist_daily mp 
+
+join species s on s.species = mp.species 
+group by 1,2,3 order by 4 desc)
+
+select date
+, subcategory index_name
+, round(median_price*100/first_value(median_price) OVER (partition by subcategory order by date), 2) index_value
+from price_base
+--union all 
+
+--select date
+--, category index_name
+--, round(median_price*100/first_value(median_price) OVER (partition by category order by date), 2) index_value
+--from price_base
+--union all
+--select date, 'TODAS (media ponderada)' index_name, round(median_price*100/first_value(median_price) OVER (order by date), 2) index_value
+--from price_base""", conn)
+
+
+
+subsector = st.selectbox(
+    'Escoge la especie a visualizar',
+     df_index['index_name'].sort_values().unique())
+
+df_index= df_index[df_index.index_name == subsector]
+
+line = alt.Chart(df_index).mark_line().encode(
+    x='date', y='index_value', color= 'index_name')
+st.altair_chart(line, use_container_width=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 st.header("Las 5 especies más vendidas")

@@ -150,13 +150,13 @@ band = alt.Chart(source).mark_area(opacity=0.7, color='#cfebfd'
 st.altair_chart(band+line, use_container_width=True)
 
 # column chart with volume
-st.text("Peso vendido en Kg")
+st.text("Kg vendido en día")
 
 df_kg_sold_per_day = df_agg_per_date.reset_index()[['fecha', 'kg_vendidos']]
 
 columns = alt.Chart(df_kg_sold_per_day).mark_bar(size=7).encode(
-    x='fecha',
-    y='kg_vendidos'
+    x=alt.X('fecha', title = 'Fecha'),
+    y=alt.Y('kg_vendidos', title = 'Kg vendidos'),
     ).configure_bar(color='#cfebfd')
 
 st.altair_chart(columns, use_container_width=True)
@@ -243,26 +243,51 @@ st.altair_chart(line + annotation + line_highlight, use_container_width=True)
 #############################
 #############################
 
-st.header("Las 5 especies más caras segun precio medio:")
+st.header("Las 10 especies más caras y baratas segun precio medio:")
 st.text("Precios en Eur /Kg")
 
-source = df_avg_per_species.round(2).nlargest(5, 'precio_medio').reset_index()[['especie','precio_medio']]
-bars=alt.Chart(source).mark_bar().encode(
-    x='precio_medio:Q',y=alt.Y('especie:N', sort='-x'), color=alt.Color('precio_medio', scale=alt.Scale(scheme='reds')))
-st.altair_chart(bars, use_container_width=True)
 
-st.write(df_avg_per_species.round(2).nlargest(5, 'precio_medio')[['precio_medio', 'precio_min','precio_max']].style.format("{:2}"))
+col1, col2 = st.beta_columns(2)
+
+source = df_avg_per_species.round(2).nlargest(10, 'precio_medio').reset_index()[['especie','precio_medio']]
+bars=alt.Chart(source).mark_bar().encode(
+    x=alt.X('precio_medio:Q', title = 'Precio medio (EUR/Kg)'),y=alt.Y('especie:N', sort='-x', title= None), color=alt.Color('precio_medio', scale=alt.Scale(scheme='reds'), legend = None))
+
+
+labels = alt.Chart(source).mark_text( align='left',
+        baseline='middle',
+        dx=7  # Nudges text to right so it doesn't appear on top of the bar
+    , color ='slategrey'
+).encode(x=alt.X('precio_medio:Q', title = 'Precio medio (EUR/Kg)'),y=alt.Y('especie:N', sort='-x', title= None),
+    text='precio_medio:Q'
+)
+         
+col1.altair_chart(bars+labels, use_container_width=True)
+
+
+
+
+
+#col1.write(df_avg_per_species.round(2).nlargest(5, 'precio_medio')[['precio_medio', 'precio_min','precio_max']].style.format("{:2}"))
 #st.bar_chart(df_avg_per_species.round(2).nlargest(5, 'precio_medio')[['precio_medio']])
 
 
-st.header("Las 5 especies más baratas segun precio medio:")
 st.text("Precios en Eur /Kg")
-source = df_avg_per_species.round(2).nsmallest(5, 'precio_medio').reset_index()[['especie','precio_medio']]
+source = df_avg_per_species.round(2).nsmallest(10, 'precio_medio').reset_index()[['especie','precio_medio']]
 bars=alt.Chart(source).mark_bar().encode(
-    x='precio_medio:Q',y=alt.Y('especie:N', sort='x'), color=alt.Color('precio_medio', scale=alt.Scale(scheme='greenblue')))
-st.altair_chart(bars, use_container_width =  True)
+    x=alt.X('precio_medio:Q', title = 'Precio medio (EUR/Kg)'), y=alt.Y('especie:N', sort='x', title= None), color=alt.Color('precio_medio', scale=alt.Scale(scheme='greenblue'), legend = None))
 
-st.write(df_avg_per_species.round(2).nsmallest(5, 'precio_medio')[['precio_medio', 'precio_min','precio_max']].style.format("{:2}"))
+labels = alt.Chart(source).mark_text( align='left',
+        baseline='middle',
+        dx=7  # Nudges text to right so it doesn't appear on top of the bar
+    , color ='slategrey'
+).encode(x=alt.X('precio_medio:Q', title = 'Precio medio (EUR/Kg)'),y=alt.Y('especie:N', sort='x', title= None),
+    text='precio_medio:Q'
+)
+
+col2.altair_chart(bars + labels, use_container_width =  True)
+
+#st.write(df_avg_per_species.round(2).nsmallest(5, 'precio_medio')[['precio_medio', 'precio_min','precio_max']].style.format("{:2}"))
 
 
 st.header("Indice general de precios")
@@ -314,20 +339,6 @@ df_index= df_index[df_index.index_name == subsector]
 line = alt.Chart(df_index).mark_line().encode(
     x='date', y='index_value', color= 'index_name')
 st.altair_chart(line, use_container_width=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

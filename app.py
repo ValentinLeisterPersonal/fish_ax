@@ -56,10 +56,36 @@ df_avg_per_species = df.groupby('especie').agg({'precio_medio':np.mean
 
 ##########
 ##########
+# set page title
+st.set_page_config(page_title='Guia del Pescado | Precios, Sugerencias, Sostenibilidad, Temporada y Valor Nutritivo', page_icon='🎣')
 
-st.title('Precios de pescado en lonja')
 
-st.header("El Chollometro de la lonja hoy")
+# Remove the little menu at the top
+st.markdown(""" <style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+</style> """, unsafe_allow_html=True)
+
+# Remove excess padding on the page
+padding = 0
+st.markdown(f""" <style>
+    .reportview-container .main .block-container{{
+        padding-top: {padding}rem;
+        padding-right: {padding}rem;
+        padding-left: {padding}rem;
+        padding-bottom: {padding}rem;
+    }} </style> """, unsafe_allow_html=True)
+
+
+# Make sure the title and icon are displayed next to each other
+titcol1, titcol2 = st.beta_columns((1,4))
+
+titcol1.image('img\logo.jpg')
+titcol2.markdown('# Tu guia para una compra economica, sostenible, saludable y variada.')
+st.markdown("---")
+
+
+st.markdown("## Encuentra chollos en la lonja hoy")
 
 
 df_deviation = pd.read_sql_query('''SELECT species as especie,
@@ -82,168 +108,82 @@ df_deviation['data_label']= pd.Series(["{0:+.0f}%".format(val * 100) for val in 
 
 
 
-option = st.selectbox(
-    'Escoge la especie a visualizar',
-     np.insert(df['especie'].sort_values().unique(),0,"TODAS (media ponderada)"))
-
-if not option == "TODAS (media ponderada)":
-        df_agg_per_date = df[df['especie']== option].set_index('fecha')[['precio_medio', 'precio_min','precio_max', 'kg_vendidos']]  
-
 if len(df_deviation)>0:
-    
-    if not option == "TODAS (media ponderada)":    
-        source = df_deviation[df_deviation["especie"] == option]
-    else:
-        (min_price, max_price) = st.slider('Indica el precio en EUR/Kg que estas dispuesto a pagar'
+    (min_price, max_price) = st.slider('Buscas algo lujoso o barato? Limita el precio en EUR/Kg que estas dispuesto a pagar'
                               , min(df_deviation.precio_hoy)
                               , max(df_deviation.precio_hoy)
                               , (min(df_deviation.precio_hoy), max(df_deviation.precio_hoy))
                               , step=1.0)
-        source = df_deviation[(df_deviation['precio_hoy']<=max_price)&(df_deviation['precio_hoy']>=min_price)]
+    source = df_deviation[(df_deviation['precio_hoy']<=max_price)&(df_deviation['precio_hoy']>=min_price)]
 
-    base = alt.Chart(source).encode(
+    base_top = alt.Chart(source).encode(
         x=alt.X('desviacion_del_precio_medio', title= 'Desviacion de precio medio', axis=alt.Axis(format='+%')),
-        y=alt.Y('especie:N', sort='x', title= 'Especie')
-    )
-    
-    bars = base.mark_bar().encode(color=alt.Color('desviacion_del_precio_medio', scale=alt.Scale(domain = [-1,+1],scheme='lightmulti'), legend = None))
-    
-    
-    text = base.mark_text(
-        align='left',
-        baseline='middle',
-        dx=7  # Nudges text to right so it doesn't appear on top of the bar
-    , color ='slategrey').encode(
-        text='data_label')
-    
-    
-    
-    st.text("Precio hoy en EUR /Kg vs. precio medio")
-    st.altair_chart(bars + text, use_container_width=True)
+        y=alt.Y('especie:N', sort='x', title= None)
+    ).transform_window(
+    rank='rank(desviacion_del_precio_medio)',
+    sort=[alt.SortField('desviacion_del_precio_medio', order='descending')]
+    ).transform_filter(
+    (alt.datum.desviacion_del_precio_medio >= 0))
+        
+    base_bottom = alt.Chart(source).encode(
+        x=alt.X('desviacion_del_precio_medio', title= 'Desviacion de precio medio', axis=alt.Axis(format='+%')),
+        y=alt.Y('especie:N', sort='x', title= None)
+    ).transform_window(
+    rank='rank(desviacion_del_precio_medio)',
+    sort=[alt.SortField('desviacion_del_precio_medio', order='ascending')]
+    ).transform_filter(
+    (alt.datum.desviacion_del_precio_medio <= 0))
+
 else:
     st.text("Parece que hoy la lonja está cerrada o aun no se han publicado precios.")
 
-    
+col1, col2 = st.beta_columns(2)
 
-st.header("Evolucion del precio y volumen de venta por especie")
-st.text("Precio medio, maximo y minimo en EUR/Kg")
-
-
-# line chart with price evolution
-source=df_agg_per_date[['precio_min','precio_max']].reset_index()
-
-source2=df_agg_per_date[['precio_medio']].reset_index().melt('fecha')
-
-line= alt.Chart(source2).mark_line(size=5).encode(
-    x=alt.X('fecha', title='Fecha'),
-    y=alt.Y('value', title='Precio (EUR/Kg)')
+base = base_bottom
+bars = base.mark_bar().encode(
+    color=alt.Color('desviacion_del_precio_medio'
+                    , scale=alt.Scale(domain = [-1,+1],scheme='lightmulti')
+                    , legend = None)
     )
 
-
-band = alt.Chart(source).mark_area(opacity=0.7, color='#cfebfd'
-).encode(
-    x='fecha',
-    y='precio_min',
-    y2='precio_max'
-)
-
-st.altair_chart(band+line, use_container_width=True)
-
-# column chart with volume
-st.text("Kg vendido en día")
-
-df_kg_sold_per_day = df_agg_per_date.reset_index()[['fecha', 'kg_vendidos']]
-
-columns = alt.Chart(df_kg_sold_per_day).mark_bar(size=7).encode(
-    x=alt.X('fecha', title = 'Fecha'),
-    y=alt.Y('kg_vendidos', title = 'Kg vendidos'),
-    ).configure_bar(color='#cfebfd')
-
-st.altair_chart(columns, use_container_width=True)
-                                    
-                                    
-if not option == "TODAS (media ponderada)":
-    if st.checkbox('Mostrar datos detallados'):
-        'Informacion detallada sobre la especie : ', option 
-        st.write(df[df['especie']==option].drop(columns='especie').sort_values(by='fecha'))
-
-
-df_per_weekday = pd.read_sql_query('''select species, weekday_numeric, avg_price, round(avg_price/ avg(avg_price) over (partition by species)-1, 3) dev_pct_from_avg_price from 
-
-((select 'TODAS (media ponderada)' as species
-, extract(isodow from date) as weekday_numeric
-, round(percentile_cont(0.5) within group (order by((max_price+min_price)/2))::numeric, 2) avg_price
-
- from market_price_vigo_hist_daily 
-group by 1,2
-order by 1,2)
-
-union all
-
-(select species
-, extract(isodow from date) as weekday_numeric
-, round(percentile_cont(0.5) within group (order by((max_price+min_price)/2))::numeric, 2) avg_price 
-
- from market_price_vigo_hist_daily 
-group by 1,2
-order by 1, 2)) as base''', conn)
-
-weekday_dict_es = {1:'1.LUN', 2:'2.MAR', 3:'3.MIE', 4: '4.JUE', 5: '5.VIE', 6: '6.SAB', 7: '7.DOM'}
-
-df_per_weekday['weekday_char']=[weekday_dict_es[wd] for wd in df_per_weekday.weekday_numeric]
-
-#line weekday chart
-
-source = df_per_weekday
-
-
-df_per_weekday['option_chosen']='other species'
-
-df_per_weekday.loc[df_per_weekday['species']==option, 'option_chosen'] = option
-
-line=alt.Chart(source).mark_line(point=True).encode(
-            x='weekday_char',
-            y=alt.Y('dev_pct_from_avg_price', axis=alt.Axis(format='+%')),
-            detail=alt.Detail('species'),
-            tooltip='species',
-            color=alt.Color('option_chosen', scale=alt.Scale(domain=['other species', option]
-                                                        , range = ['#cfebfd','#00008b']), legend =None)
-            ).interactive().properties(
-    height=450
-)
-
-# layer that accomplishes the highlighting
-source_highlight = df_per_weekday[df_per_weekday["species"] == option]
-line_highlight = alt.Chart(source_highlight).mark_line(point=True, size =3).encode(
-                    x=alt.X('weekday_char', title = 'Dia de la Semana'),
-                    y=alt.Y('dev_pct_from_avg_price', title = 'Desviacion del precio medio'),
-                    detail=alt.Detail('species'),
-                    tooltip='species',
-                    color=alt.Color('option_chosen', scale=alt.Scale(domain=['other species', option]
-                                                                , range = ['#cfebfd','#00008b']))
-                    ).interactive()
-
-
-annotation = alt.Chart(source).mark_text(
+text = base.mark_text(
     align='left',
     baseline='middle',
-    fontSize = 15,
-    dx = 20
-).encode(
-        x='weekday_char',
-        y=alt.Y('dev_pct_from_avg_price', axis=alt.Axis(format='+%')),
-    text='species'
-).transform_filter((alt.datum.species == option)&(alt.datum.weekday_char == '3.MIE')
-)
+    dx=7  # Nudges text to right so it doesn't appear on top of the bar
+, color ='slategrey').encode(
+    text='data_label')
 
 
-st.altair_chart(line + annotation + line_highlight, use_container_width=True)
+
+#st.text("Precio hoy en EUR /Kg vs. precio medio")
+col1.markdown("### Hoy más barato que habitualmente")
+col1.altair_chart(bars + text, use_container_width=True)
+
+############
+
+
+base = base_top
+bars = base.mark_bar().encode(
+    color=alt.Color('desviacion_del_precio_medio'
+                    , scale=alt.Scale(domain = [-1,+1],scheme='lightmulti')
+                    , legend = None)
+    )
+
+text = base.mark_text(
+    align='left',
+    baseline='middle',
+    dx=7  # Nudges text to right so it doesn't appear on top of the bar
+, color ='slategrey').encode(
+    text='data_label')
+
+col2.markdown("### Hoy mas caro que habitualmente")
+col2.altair_chart(bars + text, use_container_width=True)
 
 
 #############################
 #############################
 
-st.header("Las 10 especies más caras y baratas segun precio medio:")
+st.markdown("## Las 10 especies más caras y baratas segun precio medio:")
 st.text("Precios en Eur /Kg")
 
 
@@ -287,8 +227,146 @@ labels = alt.Chart(source).mark_text( align='left',
 
 col2.altair_chart(bars + labels, use_container_width =  True)
 
-#st.write(df_avg_per_species.round(2).nsmallest(5, 'precio_medio')[['precio_medio', 'precio_min','precio_max']].style.format("{:2}"))
 
+
+st.markdown("---")
+st.header("Ver detalles para una especie especifica")
+option = st.selectbox(
+    'Escoge la especie a visualizar',
+     np.insert(df['especie'].sort_values().unique(),0,"TODAS (media ponderada)"))
+
+if not option == "TODAS (media ponderada)":
+        df_agg_per_date = df[df['especie']== option].set_index('fecha')[['precio_medio', 'precio_min','precio_max', 'kg_vendidos']]  
+
+
+st.markdown("### Observa si está subiendo o bajando el precio de tu pescado/marisco")
+st.text("Precio medio, maximo y minimo en EUR/Kg")
+
+
+# line chart with price evolution
+source=df_agg_per_date[['precio_min','precio_max']].reset_index()
+
+source2=df_agg_per_date[['precio_medio']].reset_index().melt('fecha')
+
+line= alt.Chart(source2).mark_line(size=5, color = '#0C266A').encode(
+    x=alt.X('fecha', title='Fecha'),
+    y=alt.Y('value', title='Precio (EUR/Kg)')
+    )
+
+
+band = alt.Chart(source).mark_area(opacity=0.7, color='#cfebfd'
+).encode(
+    x='fecha',
+    y='precio_min',
+    y2='precio_max'
+)
+
+st.altair_chart(band+line, use_container_width=True)
+
+
+######################
+# Chart which plots data per weekday
+######################
+st.markdown("### Encuentra el mejor día de la semana para comprar tu pescado/marisco")
+
+df_per_weekday = pd.read_sql_query('''select species, weekday_numeric, avg_price, round(avg_price/ avg(avg_price) over (partition by species)-1, 3) dev_pct_from_avg_price from 
+
+((select 'TODAS (media ponderada)' as species
+, extract(isodow from date) as weekday_numeric
+, round(percentile_cont(0.5) within group (order by((max_price+min_price)/2))::numeric, 2) avg_price
+
+ from market_price_vigo_hist_daily 
+group by 1,2
+order by 1,2)
+
+union all
+
+(select species
+, extract(isodow from date) as weekday_numeric
+, round(percentile_cont(0.5) within group (order by((max_price+min_price)/2))::numeric, 2) avg_price 
+
+ from market_price_vigo_hist_daily 
+group by 1,2
+order by 1, 2)) as base''', conn)
+
+weekday_dict_es = {1:'1.LUN', 2:'2.MAR', 3:'3.MIE', 4: '4.JUE', 5: '5.VIE', 6: '6.SAB', 7: '7.DOM'}
+
+df_per_weekday['weekday_char']=[weekday_dict_es[wd] for wd in df_per_weekday.weekday_numeric]
+
+#line weekday chart
+
+source = df_per_weekday
+
+
+df_per_weekday['option_chosen']='other species'
+
+df_per_weekday.loc[df_per_weekday['species']==option, 'option_chosen'] = option
+
+line=alt.Chart(source).mark_line(point=True).encode(
+            x='weekday_char',
+            y=alt.Y('dev_pct_from_avg_price', axis=alt.Axis(format='+%')),
+            detail=alt.Detail('species'),
+            tooltip='species',
+            color=alt.Color('option_chosen', scale=alt.Scale(domain=['other species', option]
+                                                        , range = ['#cfebfd','#0C266A']), legend =None)
+            ).interactive().properties(
+    height=450
+)
+
+# layer that accomplishes the highlighting
+source_highlight = df_per_weekday[df_per_weekday["species"] == option]
+line_highlight = alt.Chart(source_highlight).mark_line(point=True, size =3).encode(
+                    x=alt.X('weekday_char', title = 'Dia de la Semana'),
+                    y=alt.Y('dev_pct_from_avg_price', title = 'Desviacion del precio medio'),
+                    detail=alt.Detail('species'),
+                    tooltip='species',
+                    color=alt.Color('option_chosen', scale=alt.Scale(domain=['other species', option]
+                                                                , range = ['#cfebfd','#0C266A']))
+                    ).interactive()
+
+
+annotation = alt.Chart(source).mark_text(
+    align='left',
+    baseline='middle',
+    fontSize = 15,
+    dx = 20
+).encode(
+        x='weekday_char',
+        y=alt.Y('dev_pct_from_avg_price', axis=alt.Axis(format='+%')),
+    text='species'
+).transform_filter((alt.datum.species == option)&(alt.datum.weekday_char == '3.MIE')
+)
+
+
+st.altair_chart(line + annotation + line_highlight, use_container_width=True)
+
+
+######################
+# Chart with the volume of sales
+######################
+
+
+# column chart with volume
+st.markdown("### Oberva si hay oferta suficiente para tu compra")
+
+df_kg_sold_per_day = df_agg_per_date.reset_index()[['fecha', 'kg_vendidos']]
+
+columns = alt.Chart(df_kg_sold_per_day).mark_bar(size=7).encode(
+    x=alt.X('fecha', title = 'Fecha'),
+    y=alt.Y('kg_vendidos', title = 'Kg vendidos'),
+    ).configure_bar(color='#cfebfd')
+
+st.altair_chart(columns, use_container_width=True)
+                                    
+                                    
+if not option == "TODAS (media ponderada)":
+    if st.checkbox('Mostrar datos detallados'):
+        'Informacion detallada sobre la especie : ', option 
+        st.write(df[df['especie']==option].drop(columns='especie').sort_values(by='fecha'))
+
+#######################
+# Price Index        
+#######################
 
 st.header("Indice general de precios")
 st.text("Abr-22 21 = 100")

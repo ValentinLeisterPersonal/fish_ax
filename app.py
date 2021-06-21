@@ -80,7 +80,7 @@ st.markdown(f""" <style>
 # Make sure the title and icon are displayed next to each other
 titcol1, titcol2 = st.beta_columns((1,4))
 
-titcol1.image('img\logo.jpg')
+titcol1.image('img/logo.jpg')
 titcol2.markdown('# Tu guia para una compra economica, sostenible, saludable y variada.')
 st.markdown("---")
 

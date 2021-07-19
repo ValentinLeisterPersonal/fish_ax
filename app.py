@@ -374,7 +374,12 @@ st.text("Abr-22 21 = 100")
 
 
 source = pd.DataFrame({'date':price_index.index, 'index':price_index.values}) 
-line = alt.Chart(source).mark_line().encode(x=alt.X('date', title= 'Fecha'), y=alt.Y('index', title= 'Nivel del Index (comparado con Abril-22 2021)'))
+line = alt.Chart(source).mark_line(size=5, color = '#0C266A').transform_window(
+    rolling_mean_7d='mean(index)',
+    frame=[-7,0]).encode(
+    x=alt.X('date', title= 'Fecha'),
+    y=alt.Y('rolling_mean_7d:Q', scale=alt.Scale(zero=False, padding=10), title= 'Nivel del Index (comparado con Abril-22 2021)')
+    )
 st.altair_chart(line, use_container_width=True)
 
 

@@ -211,8 +211,6 @@ col1.altair_chart(bars+labels, use_container_width=True)
 #col1.write(df_avg_per_species.round(2).nlargest(5, 'precio_medio')[['precio_medio', 'precio_min','precio_max']].style.format("{:2}"))
 #st.bar_chart(df_avg_per_species.round(2).nlargest(5, 'precio_medio')[['precio_medio']])
 
-
-st.text("Precios en Eur /Kg")
 source = df_avg_per_species.round(2).nsmallest(10, 'precio_medio').reset_index()[['especie','precio_medio']]
 bars=alt.Chart(source).mark_bar().encode(
     x=alt.X('precio_medio:Q', title = 'Precio medio (EUR/Kg)'), y=alt.Y('especie:N', sort='x', title= None), color=alt.Color('precio_medio', scale=alt.Scale(scheme='greenblue'), legend = None))
@@ -289,11 +287,13 @@ union all
 group by 1,2
 order by 1, 2)) as base''', conn)
 
-weekday_dict_es = {1:'1.LUN', 2:'2.MAR', 3:'3.MIE', 4: '4.JUE', 5: '5.VIE', 6: '6.SAB', 7: '7.DOM'}
+weekday_dict_es = {1:'1. LUN', 2:'2. MAR', 3:'3. MIE', 4: '4. JUE', 5: '5. VIE', 6: '6. SAB', 7: '7. DOM'}
 
 df_per_weekday['weekday_char']=[weekday_dict_es[wd] for wd in df_per_weekday.weekday_numeric]
 
+############################
 #line weekday chart
+############################
 
 source = df_per_weekday
 
@@ -353,7 +353,7 @@ df_kg_sold_per_day = df_agg_per_date.reset_index()[['fecha', 'kg_vendidos']]
 
 columns = alt.Chart(df_kg_sold_per_day).mark_bar(size=7).encode(
     x=alt.X('fecha', title = 'Fecha'),
-    y=alt.Y('kg_vendidos', title = 'Kg vendidos'),
+    y=alt.Y('kg_vendidos', title = 'Kg en venta'),
     ).configure_bar(color='#cfebfd')
 
 st.altair_chart(columns, use_container_width=True)
@@ -374,7 +374,7 @@ st.text("Abr-22 21 = 100")
 
 
 source = pd.DataFrame({'date':price_index.index, 'index':price_index.values}) 
-line = alt.Chart(source).mark_line().encode(x='date', y='index')
+line = alt.Chart(source).mark_line().encode(x=alt.X('date', title= 'Fecha'), y=alt.Y('index', title= 'Nivel del Index (comparado con Abril-22 2021)'))
 st.altair_chart(line, use_container_width=True)
 
 
@@ -415,13 +415,13 @@ subsector = st.selectbox(
 df_index= df_index[df_index.index_name == subsector]
 
 line = alt.Chart(df_index).mark_line().encode(
-    x='date', y='index_value', color= 'index_name')
+    x=alt.X('date', title= 'Fecha'), y=alt.Y('index_value', title= 'Nivel del Index (comparado con Abril-22 2021)'), color= 'index_name')
 st.altair_chart(line, use_container_width=True)
 
 
 
 st.header("Las 5 especies más vendidas")
-st.text("Segun Kg vendidos por media cada día")
+st.text("Según Cantidad vendida por media cada día")
 st.dataframe(df_avg_per_species.round(2).nlargest(5, 'kg_vendidos')[['kg_vendidos', 'precio_medio']].style.format("{:,.2f}"))
 
 

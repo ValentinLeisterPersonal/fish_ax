@@ -133,51 +133,53 @@ if len(df_deviation)>0:
     sort=[alt.SortField('desviacion_del_precio_medio', order='ascending')]
     ).transform_filter(
     (alt.datum.desviacion_del_precio_medio <= 0))
+            
+    col1, col2 = st.beta_columns(2)
+    
+    base = base_bottom
+    bars = base.mark_bar().encode(
+        color=alt.Color('desviacion_del_precio_medio'
+                        , scale=alt.Scale(domain = [-1,+1],scheme='lightmulti')
+                        , legend = None)
+        )
+    
+    text = base.mark_text(
+        align='left',
+        baseline='middle',
+        dx=7  # Nudges text to right so it doesn't appear on top of the bar
+    , color ='slategrey').encode(
+        text='data_label')
+    
+    
+    
+    #st.text("Precio hoy en EUR /Kg vs. precio medio")
+    col1.markdown("### Hoy más barato que habitualmente")
+    col1.altair_chart(bars + text, use_container_width=True)
+    
+    ############
+    
+    
+    base = base_top
+    bars = base.mark_bar().encode(
+        color=alt.Color('desviacion_del_precio_medio'
+                        , scale=alt.Scale(domain = [-1,+1],scheme='lightmulti')
+                        , legend = None)
+        )
+    
+    text = base.mark_text(
+        align='left',
+        baseline='middle',
+        dx=7  # Nudges text to right so it doesn't appear on top of the bar
+    , color ='slategrey').encode(
+        text='data_label')
+    
+    col2.markdown("### Hoy mas caro que habitualmente")
+    col2.altair_chart(bars + text, use_container_width=True)
 
 else:
     st.text("Parece que hoy la lonja está cerrada o aun no se han publicado precios.")
 
-col1, col2 = st.beta_columns(2)
 
-base = base_bottom
-bars = base.mark_bar().encode(
-    color=alt.Color('desviacion_del_precio_medio'
-                    , scale=alt.Scale(domain = [-1,+1],scheme='lightmulti')
-                    , legend = None)
-    )
-
-text = base.mark_text(
-    align='left',
-    baseline='middle',
-    dx=7  # Nudges text to right so it doesn't appear on top of the bar
-, color ='slategrey').encode(
-    text='data_label')
-
-
-
-#st.text("Precio hoy en EUR /Kg vs. precio medio")
-col1.markdown("### Hoy más barato que habitualmente")
-col1.altair_chart(bars + text, use_container_width=True)
-
-############
-
-
-base = base_top
-bars = base.mark_bar().encode(
-    color=alt.Color('desviacion_del_precio_medio'
-                    , scale=alt.Scale(domain = [-1,+1],scheme='lightmulti')
-                    , legend = None)
-    )
-
-text = base.mark_text(
-    align='left',
-    baseline='middle',
-    dx=7  # Nudges text to right so it doesn't appear on top of the bar
-, color ='slategrey').encode(
-    text='data_label')
-
-col2.markdown("### Hoy mas caro que habitualmente")
-col2.altair_chart(bars + text, use_container_width=True)
 
 
 #############################
